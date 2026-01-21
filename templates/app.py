@@ -826,7 +826,7 @@ class TcpBotConnectMain:
     def TOKEN_MAKER(self,OLD_ACCESS_TOKEN , NEW_ACCESS_TOKEN , OLD_OPEN_ID , NEW_OPEN_ID,id):
         headers = {
             'X-Unity-Version': '2018.4.11f1',
-            'ReleaseVersion': 'Ob51',
+            'ReleaseVersion': 'OB52',
             'Content-Type': 'application/x-www-form-urlencoded',
             'X-GA': 'v1 1',
             'Content-Length': '928',
