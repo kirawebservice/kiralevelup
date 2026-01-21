@@ -1,0 +1,18 @@
+{
+  "accounts": {
+    "4363488817": {
+      "password": "BC3CAB36604BC2BF53BC7FB37C337FAB1C517069F820B8E5EFD9D99C36D78967",
+      "name": "4363497956",
+      "team_code": "7046922",
+      "uid": "",
+      "enabled": true
+    },
+    "4363497956": {
+      "password": "BC3CAB36604BC2BF53BC7FB37C337FAB1C517069F820B8E5EFD9D99C36D78967",
+      "name": "4363497956",
+      "team_code": "1612864",
+      "uid": "",
+      "enabled": true
+    }
+  }
+}

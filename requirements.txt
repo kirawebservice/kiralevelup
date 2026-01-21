@@ -1,0 +1,11 @@
+Flask
+Flask-Login
+Werkzeug
+httpx
+requests
+pyjwt
+google
+protobuf
+pycryptodome
+protobuf_decoder
+psutil
