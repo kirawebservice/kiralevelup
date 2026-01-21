@@ -1,0 +1,518 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard{% endblock %}
+{% block extra_css %}
+<style>
+.user-info-card{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;padding:20px;border-radius:15px;margin-bottom:20px}
+.user-info-card h3{margin:0 0 10px 0;font-size:18px}
+.user-info-card .info{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px;margin-top:15px}
+.user-info-card .info-item{background:rgba(255,255,255,0.1);padding:10px;border-radius:8px}
+.users-table,.accounts-table{width:100%;border-collapse:collapse;margin-top:20px}
+.users-table th,.users-table td,.accounts-table th,.accounts-table td{padding:12px;text-align:left;border-bottom:1px solid #e0e0e0}
+.users-table th,.accounts-table th{background:#f5f5f5;font-weight:600;color:#333}
+.modal{display:none;position:fixed;z-index:1000;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,0.5)}
+.modal-content{background:#fff;margin:5% auto;padding:30px;border-radius:15px;width:90%;max-width:600px;box-shadow:0 10px 40px rgba(0,0,0,0.2);max-height:80vh;overflow-y:auto}
+.form-group{margin-bottom:20px}
+.form-group label{display:block;margin-bottom:8px;font-weight:600;color:#333}
+.form-group input,.form-group select{width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:14px}
+.status-badge{padding:4px 12px;border-radius:12px;font-size:12px;font-weight:600}
+.status-active{background:#d4edda;color:#155724}
+.status-expired{background:#fff3cd;color:#856404}
+.btn-small{padding:6px 12px;font-size:12px}
+</style>
+{% endblock %}
+{% block content %}
+<div class="user-info-card">
+    <h3>👑 Admin Dashboard</h3>
+    <div class="info">
+        <div class="info-item"><label>Username</label><br><value>{{ username }}</value></div>
+        <div class="info-item"><label>Role</label><br><value>ADMIN</value></div>
+        <div class="info-item"><label>Active Sessions</label><br><value>{{ active_sessions_count }}</value></div>
+    </div>
+</div>
+<div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <h2>👥 User Management</h2>
+        <button id="a1" class="btn btn-primary">+ Add User</button>
+    </div>
+    <div id="a2" style="text-align:center;padding:20px;color:#667eea">Loading...</div>
+    <table class="users-table" id="a3" style="display:none">
+        <thead><tr><th>Username</th><th>Role</th><th>Assigned Account</th><th>Valid Until</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody id="a4"></tbody>
+    </table>
+</div>
+<div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <h2>🎮 Account Management</h2>
+        <button id="a5" class="btn btn-primary">+ Add Account</button>
+    </div>
+    <div id="a6" style="text-align:center;padding:20px;color:#667eea">Loading...</div>
+    <table class="accounts-table" id="a7" style="display:none">
+        <thead><tr><th>Account ID</th><th>Name</th><th>Team Code</th><th>Status</th><th>Loop</th><th>Actions</th></tr></thead>
+        <tbody id="a8"></tbody>
+    </table>
+</div>
+<div id="a9" class="modal"><div class="modal-content"><h2 id="a10">Add User</h2><form id="a11"><div class="form-group"><label>Username *</label><input type="text" id="a12" required></div><div class="form-group"><label>Password *</label><input type="password" id="a13" required></div><div class="form-group"><label>Role *</label><select id="a14" required><option value="user">User</option><option value="admin">Admin</option></select></div><div class="form-group"><label>Assign Account</label><select id="a15"><option value="">-- No Account --</option></select></div><div class="form-group"><label>Validity (Days)</label><input type="number" id="a16" placeholder="Unlimited if empty"></div><div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px"><button type="button" class="btn btn-secondary" id="a17">Cancel</button><button type="submit" class="btn btn-primary">Save</button></div></form></div></div>
+<div id="a18" class="modal"><div class="modal-content"><h2 id="a19">Add Account</h2><form id="a20"><div class="form-group"><label>Account ID *</label><input type="text" id="a21" required></div><div class="form-group"><label>Password *</label><input type="password" id="a22" required></div><div class="form-group"><label>Name</label><input type="text" id="a23"></div><div class="form-group"><label>Team Code</label><input type="text" id="a24"></div><div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px"><button type="button" class="btn btn-secondary" id="a25">Cancel</button><button type="submit" class="btn btn-primary">Save</button></div></form></div></div>
+{% endblock %}
+{% block extra_js %}
+<script>
+(function() {
+    'use strict';
+    
+    var usersData = {};
+    var accountsData = {};
+    var editingUserId = null;
+    var editingAccountId = null;
+    
+    // Load users
+    function loadUsers() {
+        fetch('/api/users')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('HTTP ' + response.status);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    usersData = data.users || {};
+                    renderUsers();
+                } else {
+                    showError('a2', 'Error loading users: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(err => {
+                console.error('Error loading users:', err);
+                showError('a2', 'Failed to load users. Please refresh the page.');
+            });
+    }
+    
+    // Load accounts
+    function loadAccounts() {
+        fetch('/api/accounts')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('HTTP ' + response.status);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    accountsData = data.accounts || {};
+                    renderAccounts();
+                } else {
+                    showError('a6', 'Error loading accounts: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(err => {
+                console.error('Error loading accounts:', err);
+                showError('a6', 'Failed to load accounts. Please refresh the page.');
+            });
+    }
+    
+    // Show error message
+    function showError(elementId, message) {
+        var element = document.getElementById(elementId);
+        if (element) {
+            element.style.display = 'block';
+            element.innerHTML = '<span style="color: #ff4444;">❌ ' + message + '</span>';
+        }
+    }
+    
+    // Render users table
+    function renderUsers() {
+        var tbody = document.getElementById('a4');
+        var table = document.getElementById('a3');
+        var loading = document.getElementById('a2');
+        
+        if (!tbody || !table || !loading) return;
+        
+        loading.style.display = 'none';
+        tbody.innerHTML = '';
+        
+        if (Object.keys(usersData).length === 0) {
+            table.style.display = 'none';
+            loading.style.display = 'block';
+            loading.innerHTML = '<span style="color: #999;">No users found</span>';
+            return;
+        }
+        
+        table.style.display = 'table';
+        
+        for (var username in usersData) {
+            var user = usersData[username];
+            var tr = document.createElement('tr');
+            var statusClass = user.is_valid ? 'status-active' : 'status-expired';
+            var statusText = user.is_valid ? 'Valid' : 'Expired';
+            var validUntil = user.valid_until || 'Unlimited';
+            if (validUntil !== 'Unlimited') {
+                try {
+                    validUntil = new Date(validUntil).toLocaleString();
+                } catch (e) {
+                    validUntil = user.valid_until;
+                }
+            }
+            
+            var deleteBtn = '{{ username }}' !== username 
+                ? '<button class="btn btn-danger btn-small" onclick="deleteUser(\'' + username + '\')">Delete</button>'
+                : '';
+            
+            tr.innerHTML = '<td>' + username + '</td>' +
+                '<td>' + (user.role || 'user').toUpperCase() + '</td>' +
+                '<td>' + (user.assigned_account || 'None') + '</td>' +
+                '<td>' + validUntil + '</td>' +
+                '<td><span class="status-badge ' + statusClass + '">' + statusText + '</span></td>' +
+                '<td><div class="actions">' +
+                '<button class="btn btn-primary btn-small" onclick="editUser(\'' + username + '\')">Edit</button>' +
+                deleteBtn +
+                '</div></td>';
+            tbody.appendChild(tr);
+        }
+    }
+    
+    // Render accounts table
+    function renderAccounts() {
+        var tbody = document.getElementById('a8');
+        var table = document.getElementById('a7');
+        var loading = document.getElementById('a6');
+        
+        if (!tbody || !table || !loading) return;
+        
+        loading.style.display = 'none';
+        tbody.innerHTML = '';
+        
+        if (Object.keys(accountsData).length === 0) {
+            table.style.display = 'none';
+            loading.style.display = 'block';
+            loading.innerHTML = '<span style="color: #999;">No accounts found</span>';
+            return;
+        }
+        
+        table.style.display = 'table';
+        
+        for (var accountId in accountsData) {
+            var account = accountsData[accountId];
+            var tr = document.createElement('tr');
+            var statusClass = account.running ? 'status-active' : 'status-inactive';
+            var statusText = account.running ? 'Running' : 'Stopped';
+            var loopStatusClass = account.loop_running ? 'status-active' : 'status-inactive';
+            var loopStatusText = account.loop_running ? 'Running' : 'Stopped';
+            
+            var actionBtn = account.running
+                ? '<button class="btn btn-warning btn-small" onclick="stopAccount(\'' + accountId + '\')">Stop</button>'
+                : '<button class="btn btn-success btn-small" onclick="startAccount(\'' + accountId + '\')">Start</button>';
+            
+            var loopBtn = account.loop_running
+                ? '<button class="btn btn-warning btn-small" onclick="stopAccountLoop(\'' + accountId + '\')">Stop Loop</button>'
+                : '<button class="btn btn-success btn-small" onclick="startAccountLoop(\'' + accountId + '\')">Start Level UP</button>';
+            
+            tr.innerHTML = '<td>' + accountId + '</td>' +
+                '<td>' + (account.name || accountId) + '</td>' +
+                '<td><div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap">' +
+                '<input type="text" id="tc-' + accountId + '" style="width:150px;padding:6px;border:1px solid #ddd;border-radius:4px" value="' + (account.team_code || '') + '" placeholder="Team Code">' +
+                '<button class="btn btn-primary btn-small" onclick="updateTeamCode(\'' + accountId + '\')" style="white-space:nowrap">Update</button>' +
+                '</div></td>' +
+                '<td><span class="status-badge ' + statusClass + '">' + statusText + '</span></td>' +
+                '<td><div style="display:flex;gap:5px">' +
+                '<span class="status-badge ' + loopStatusClass + '">' + loopStatusText + '</span>' +
+                loopBtn +
+                '</div></td>' +
+                '<td><div class="actions">' +
+                actionBtn +
+                '<button class="btn btn-primary btn-small" onclick="editAccount(\'' + accountId + '\')">Edit</button>' +
+                '<button class="btn btn-danger btn-small" onclick="deleteAccount(\'' + accountId + '\')">Delete</button>' +
+                '</div></td>';
+            tbody.appendChild(tr);
+        }
+    }
+    
+    // Edit user
+    window.editUser = function(username) {
+        editingUserId = username;
+        var user = usersData[username];
+        document.getElementById('a10').textContent = 'Edit User';
+        document.getElementById('a12').value = username;
+        document.getElementById('a12').disabled = true;
+        document.getElementById('a13').value = '';
+        document.getElementById('a13').placeholder = 'Leave blank to keep current';
+        document.getElementById('a14').value = user.role || 'user';
+        document.getElementById('a15').value = user.assigned_account || '';
+        document.getElementById('a16').value = '';
+        document.getElementById('a9').style.display = 'block';
+        loadAvailableAccounts();
+    };
+    
+    // Delete user
+    window.deleteUser = function(username) {
+        if (!confirm('Delete user ' + username + '?')) return;
+        fetch('/api/users/' + username, { method: 'DELETE' })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.success ? '✅ ' + data.message : '❌ ' + data.error);
+                if (data.success) loadUsers();
+            })
+            .catch(err => alert('❌ Error: ' + err));
+    };
+    
+    // Stop account
+    window.stopAccount = function(accountId) {
+        if (!confirm('Stop account ' + accountId + '?')) return;
+        fetch('/api/accounts/' + accountId + '/stop', { method: 'POST' })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.success ? '✅ ' + data.message : '❌ ' + data.error);
+                if (data.success) setTimeout(loadAccounts, 500);
+            })
+            .catch(err => alert('❌ Error: ' + err));
+    };
+    
+    // Start account
+    window.startAccount = function(accountId) {
+        fetch('/api/accounts/' + accountId + '/start', { method: 'POST' })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.success ? '✅ ' + data.message : '❌ ' + data.error);
+                if (data.success) setTimeout(loadAccounts, 1000);
+            })
+            .catch(err => alert('❌ Error: ' + err));
+    };
+    
+    // Start account loop
+    window.startAccountLoop = function(accountId) {
+        fetch('/api/accounts/' + accountId + '/loop/start', { method: 'POST' })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.success ? '✅ ' + data.message : '❌ ' + data.error);
+                if (data.success) loadAccounts();
+            })
+            .catch(err => alert('❌ Error: ' + err));
+    };
+    
+    // Stop account loop
+    window.stopAccountLoop = function(accountId) {
+        if (!confirm('Stop loop for account ' + accountId + '?')) return;
+        fetch('/api/accounts/' + accountId + '/loop/stop', { method: 'POST' })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.success ? '✅ ' + data.message : '❌ ' + data.error);
+                if (data.success) loadAccounts();
+            })
+            .catch(err => alert('❌ Error: ' + err));
+    };
+    
+    // Update team code
+    window.updateTeamCode = function(accountId) {
+        var teamCodeInput = document.getElementById('tc-' + accountId);
+        var teamCode = teamCodeInput.value.trim();
+        if (!teamCode) {
+            alert('❌ Please enter a team code');
+            return;
+        }
+        
+        // Find the update button
+        var btn = teamCodeInput.nextElementSibling;
+        var originalText = btn ? btn.textContent : 'Update';
+        if (btn) {
+            btn.disabled = true;
+            btn.textContent = 'Updating...';
+        }
+        
+        fetch('/api/accounts/' + accountId + '/teamcode', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ team_code: teamCode, uid: '' })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.textContent = originalText;
+                }
+                if (data.success) {
+                    alert('✅ Team code updated successfully for account ' + accountId + '!');
+                    loadAccounts();
+                } else {
+                    alert('❌ Error: ' + (data.error || 'Failed to update team code'));
+                }
+            })
+            .catch(err => {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.textContent = originalText;
+                }
+                alert('❌ Error: ' + err);
+            });
+    };
+    
+    // Edit account
+    window.editAccount = function(accountId) {
+        editingAccountId = accountId;
+        var account = accountsData[accountId];
+        document.getElementById('a19').textContent = 'Edit Account';
+        document.getElementById('a21').value = accountId;
+        document.getElementById('a21').disabled = true;
+        document.getElementById('a23').value = account.name || accountId;
+        document.getElementById('a22').value = '';
+        document.getElementById('a24').value = account.team_code || '';
+        document.getElementById('a18').style.display = 'block';
+    };
+    
+    // Delete account
+    window.deleteAccount = function(accountId) {
+        if (!confirm('Delete account ' + accountId + '?')) return;
+        fetch('/api/accounts/' + accountId, { method: 'DELETE' })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.success ? '✅ ' + data.message : '❌ ' + data.error);
+                if (data.success) {
+                    loadAccounts();
+                    loadUsers();
+                }
+            })
+            .catch(err => alert('❌ Error: ' + err));
+    };
+    
+    // Load available accounts for user assignment
+    function loadAvailableAccounts() {
+        fetch('/api/available-accounts')
+            .then(response => response.json())
+            .then(data => {
+                var select = document.getElementById('a15');
+                if (!select) return;
+                select.innerHTML = '<option value="">-- No Account --</option>';
+                if (data.success && data.accounts) {
+                    data.accounts.forEach(function(acc) {
+                        var assigned = acc.assigned_to ? ' (assigned to ' + acc.assigned_to + ')' : '';
+                        select.innerHTML += '<option value="' + acc.account_id + '">' + acc.account_id + ' - ' + acc.name + assigned + '</option>';
+                    });
+                }
+            })
+            .catch(err => console.error('Error loading available accounts:', err));
+    }
+    
+    // Add user button
+    document.getElementById('a1').addEventListener('click', function() {
+        editingUserId = null;
+        document.getElementById('a10').textContent = 'Add User';
+        document.getElementById('a11').reset();
+        document.getElementById('a12').disabled = false;
+        document.getElementById('a13').placeholder = '';
+        document.getElementById('a9').style.display = 'block';
+        loadAvailableAccounts();
+    });
+    
+    // Add account button
+    document.getElementById('a5').addEventListener('click', function() {
+        editingAccountId = null;
+        document.getElementById('a19').textContent = 'Add Account';
+        document.getElementById('a20').reset();
+        document.getElementById('a21').disabled = false;
+        document.getElementById('a18').style.display = 'block';
+    });
+    
+    // User form submit
+    document.getElementById('a11').addEventListener('submit', function(e) {
+        e.preventDefault();
+        var username = document.getElementById('a12').value.trim();
+        var password = document.getElementById('a13').value.trim();
+        var role = document.getElementById('a14').value;
+        var assignedAccount = document.getElementById('a15').value;
+        var validDays = document.getElementById('a16').value;
+        
+        if (!username || (!password && !editingUserId)) {
+            alert('❌ Required fields');
+            return;
+        }
+        
+        var url = editingUserId ? '/api/users/' + editingUserId : '/api/users';
+        var method = editingUserId ? 'PUT' : 'POST';
+        var data = {
+            username: username,
+            role: role,
+            assigned_account: assignedAccount || null,
+            valid_days: validDays || null
+        };
+        if (password) data.password = password;
+        
+        fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.success ? '✅ ' + data.message : '❌ ' + data.error);
+                if (data.success) {
+                    document.getElementById('a9').style.display = 'none';
+                    loadUsers();
+                }
+            })
+            .catch(err => alert('❌ Error: ' + err));
+    });
+    
+    // Account form submit
+    document.getElementById('a20').addEventListener('submit', function(e) {
+        e.preventDefault();
+        var accountId = document.getElementById('a21').value.trim();
+        var password = document.getElementById('a22').value.trim();
+        var name = document.getElementById('a23').value.trim();
+        var teamCode = document.getElementById('a24').value.trim();
+        
+        if (!accountId || (!password && !editingAccountId)) {
+            alert('❌ Required fields');
+            return;
+        }
+        
+        var url = editingAccountId ? '/api/accounts/' + editingAccountId : '/api/accounts';
+        var method = editingAccountId ? 'PUT' : 'POST';
+        var data = {
+            account_id: accountId,
+            name: name || accountId,
+            team_code: teamCode
+        };
+        if (password) data.password = password;
+        
+        fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.success ? '✅ ' + data.message : '❌ ' + data.error);
+                if (data.success) {
+                    document.getElementById('a18').style.display = 'none';
+                    loadAccounts();
+                }
+            })
+            .catch(err => alert('❌ Error: ' + err));
+    });
+    
+    // Cancel buttons
+    document.getElementById('a17').addEventListener('click', function() {
+        document.getElementById('a9').style.display = 'none';
+    });
+    document.getElementById('a25').addEventListener('click', function() {
+        document.getElementById('a18').style.display = 'none';
+    });
+    
+    // Close modal on outside click
+    window.onclick = function(event) {
+        if (event.target.classList.contains('modal')) {
+            event.target.style.display = 'none';
+        }
+    };
+    
+    // Initial load
+    loadUsers();
+    loadAccounts();
+    
+    // Auto-refresh every 5 seconds
+    setInterval(function() {
+        loadUsers();
+        loadAccounts();
+    }, 5000);
+})();
+</script>
+{% endblock %}
+

@@ -1,0 +1,10 @@
+{
+    "admin": {
+        "password_hash": "scrypt:32768:8:1$u2ZI7XJCTVEhJ7kx$33e9ba5ff561a8f6b885627d53b847ae512f8babfbadb5cacc82f6b795a448da348b2bbac5d833366c2c8e860170e5022d6a228ff5e45eaf244548de2c4c5b2a",
+        "created_at": "2025-11-19T15:08:19.728316",
+        "password_changed_at": "2025-11-19T15:10:01.080963",
+        "role": "admin",
+        "assigned_account": null,
+        "valid_until": null
+    }
+}

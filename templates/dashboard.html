@@ -1,0 +1,785 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Emote Bot Control{% endblock %}
+
+{% block extra_css %}
+<style>
+    .control-panel {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+    
+    .control-card {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        padding: 30px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    }
+    
+    .control-card h3 {
+        color: #333;
+        margin-bottom: 20px;
+        font-size: 20px;
+    }
+    
+    .users-table, .accounts-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+    }
+    
+    .users-table th, .users-table td,
+    .accounts-table th, .accounts-table td {
+        padding: 12px;
+        text-align: left;
+        border-bottom: 1px solid #e0e0e0;
+    }
+    
+    .users-table th, .accounts-table th {
+        background: #f5f5f5;
+        font-weight: 600;
+        color: #333;
+    }
+    
+    .users-table tr:hover, .accounts-table tr:hover {
+        background: #f9f9f9;
+    }
+    
+    .actions {
+        display: flex;
+        gap: 8px;
+    }
+    
+    .btn-small {
+        padding: 6px 12px;
+        font-size: 12px;
+    }
+    
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+    }
+    
+    .modal-content {
+        background: white;
+        margin: 5% auto;
+        padding: 30px;
+        border-radius: 15px;
+        width: 90%;
+        max-width: 600px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+    
+    .form-group {
+        margin-bottom: 20px;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #333;
+    }
+    
+    .form-group input, .form-group select {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 14px;
+    }
+    
+    .form-group input:focus, .form-group select:focus {
+        outline: none;
+        border-color: #667eea;
+    }
+    
+    .modal-actions {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+        margin-top: 20px;
+    }
+    
+    .status-badge {
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+    
+    .status-active {
+        background: #d4edda;
+        color: #155724;
+    }
+    
+    .status-inactive {
+        background: #f8d7da;
+        color: #721c24;
+    }
+    
+    .status-expired {
+        background: #fff3cd;
+        color: #856404;
+    }
+    
+    .user-info-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px;
+        border-radius: 15px;
+        margin-bottom: 20px;
+    }
+    
+    .user-info-card h3 {
+        margin: 0 0 10px 0;
+        font-size: 18px;
+    }
+    
+    .user-info-card .info {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-top: 15px;
+    }
+    
+    .user-info-card .info-item {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 10px;
+        border-radius: 8px;
+    }
+    
+    .user-info-card .info-item label {
+        font-size: 12px;
+        opacity: 0.9;
+    }
+    
+    .user-info-card .info-item value {
+        font-size: 16px;
+        font-weight: 600;
+    }
+    
+    .role-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+        background: rgba(255, 255, 255, 0.2);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+{% if is_admin %}
+<!-- ADMIN VIEW -->
+<div class="user-info-card">
+    <h3>👑 Admin Dashboard</h3>
+    <div class="info">
+        <div class="info-item">
+            <label>Username</label><br>
+            <value>{{ username }}</value>
+        </div>
+        <div class="info-item">
+            <label>Role</label><br>
+            <value><span class="role-badge">{{ role|upper }}</span></value>
+        </div>
+        <div class="info-item">
+            <label>Active Sessions</label><br>
+            <value>{{ active_sessions_count }}</value>
+        </div>
+    </div>
+</div>
+
+<!-- User Management Section -->
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2>👥 User Management</h2>
+        <button id="add-user-btn" class="btn btn-primary">+ Add User</button>
+    </div>
+    
+    <div id="users-loading" style="text-align: center; padding: 20px; color: #667eea;">Loading users...</div>
+    <table class="users-table" id="users-table" style="display: none;">
+        <thead>
+            <tr>
+                <th>Username</th>
+                <th>Role</th>
+                <th>Assigned Account</th>
+                <th>Valid Until</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="users-tbody">
+        </tbody>
+    </table>
+    <div id="users-empty" style="display: none; text-align: center; padding: 40px; color: #999;">
+        No users found.
+    </div>
+</div>
+
+<!-- Account Management Section -->
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2>🎮 Account Management</h2>
+        <button id="add-account-btn" class="btn btn-primary">+ Add Account</button>
+    </div>
+    
+    <div id="accounts-loading" style="text-align: center; padding: 20px; color: #667eea;">Loading accounts...</div>
+    <table class="accounts-table" id="accounts-table" style="display: none;">
+        <thead>
+            <tr>
+                <th>Account ID</th>
+                <th>Name</th>
+                <th>Team Code</th>
+                <th>Account Status</th>
+                <th>Loop Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="accounts-tbody">
+        </tbody>
+    </table>
+</div>
+
+{% else %}
+<!-- USER VIEW -->
+<div class="user-info-card">
+    <h3>👤 User Dashboard</h3>
+    <div class="info">
+        <div class="info-item">
+            <label>Username</label><br>
+            <value>{{ username }}</value>
+        </div>
+        <div class="info-item">
+            <label>Role</label><br>
+            <value><span class="role-badge">{{ role|upper }}</span></value>
+        </div>
+        <div class="info-item">
+            <label>Assigned Account</label><br>
+            <value>{{ assigned_account or 'None' }}</value>
+        </div>
+    </div>
+</div>
+
+<!-- User's Account Control -->
+<div class="card">
+    <h2>🎮 My Account Control</h2>
+    
+    <div id="accounts-loading" style="text-align: center; padding: 20px; color: #667eea;">Loading account...</div>
+    <div id="no-account" style="display: none; text-align: center; padding: 40px; color: #999;">
+        ⚠️ No account assigned to you. Please contact admin.
+    </div>
+    <table class="accounts-table" id="accounts-table" style="display: none;">
+        <thead>
+            <tr>
+                <th>Account ID</th>
+                <th>Name</th>
+                <th>Team Code</th>
+                <th>Account Status</th>
+                <th>Loop Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="accounts-tbody">
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+<!-- User Modal (Admin Only) -->
+<div id="user-modal" class="modal">
+    <div class="modal-content">
+        <h2 id="user-modal-title">Add New User</h2>
+        <form id="user-form">
+            <div class="form-group">
+                <label for="user-username">Username *</label>
+                <input type="text" id="user-username" required>
+            </div>
+            <div class="form-group">
+                <label for="user-password">Password *</label>
+                <input type="password" id="user-password" required>
+            </div>
+            <div class="form-group">
+                <label for="user-role">Role *</label>
+                <select id="user-role" required>
+                    <option value="user">User</option>
+                    <option value="admin">Admin</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="user-account">Assign Account</label>
+                <select id="user-account">
+                    <option value="">-- No Account --</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="user-valid-days">Validity (Days)</label>
+                <input type="number" id="user-valid-days" placeholder="Leave empty for unlimited">
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" id="close-user-modal">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Account Modal -->
+<div id="account-modal" class="modal">
+    <div class="modal-content">
+        <h2 id="account-modal-title">Add New Account</h2>
+        <form id="account-form">
+            <div class="form-group">
+                <label for="account-id">Account ID *</label>
+                <input type="text" id="account-id" required>
+            </div>
+            <div class="form-group">
+                <label for="account-password">Password *</label>
+                <input type="password" id="account-password" required>
+            </div>
+            <div class="form-group">
+                <label for="account-name">Name</label>
+                <input type="text" id="account-name" placeholder="Optional display name">
+            </div>
+            <div class="form-group">
+                <label for="account-teamcode">Team Code</label>
+                <input type="text" id="account-teamcode" placeholder="Optional team code">
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" id="close-account-modal">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const IS_ADMIN = {{ 'true' if is_admin else 'false' }};
+let accountsData = {};
+let usersData = {};
+let editingAccountId = null;
+let editingUsername = null;
+
+// Load accounts
+function loadAccounts() {
+    fetch('/api/accounts')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                accountsData = data.accounts;
+                renderAccounts();
+            } else {
+                if (!IS_ADMIN) {
+                    document.getElementById('accounts-loading').style.display = 'none';
+                    document.getElementById('no-account').style.display = 'block';
+                } else {
+                    alert('❌ Error loading accounts: ' + data.error);
+                }
+            }
+        })
+        .catch(err => {
+            console.error('Error loading accounts:', err);
+        });
+}
+
+// Render accounts table
+function renderAccounts() {
+    const tbody = document.getElementById('accounts-tbody');
+    const table = document.getElementById('accounts-table');
+    const loading = document.getElementById('accounts-loading');
+    
+    loading.style.display = 'none';
+    
+    if (Object.keys(accountsData).length === 0) {
+        table.style.display = 'none';
+        if (!IS_ADMIN) {
+            document.getElementById('no-account').style.display = 'block';
+        }
+        return;
+    }
+    
+    table.style.display = 'table';
+    tbody.innerHTML = '';
+    
+    for (const [accountId, account] of Object.entries(accountsData)) {
+        const tr = document.createElement('tr');
+        const isRunning = account.running || false;
+        const loopRunning = account.loop_running || false;
+        const statusClass = isRunning ? 'status-active' : 'status-inactive';
+        const statusText = isRunning ? 'Running' : 'Stopped';
+        const loopStatusClass = loopRunning ? 'status-active' : 'status-inactive';
+        const loopStatusText = loopRunning ? 'Running' : 'Stopped';
+        
+        const actionButton = isRunning 
+            ? `<button class="btn btn-warning btn-small" onclick="stopAccount('${accountId}')">Stop</button>`
+            : `<button class="btn btn-success btn-small" onclick="startAccount('${accountId}')">Start</button>`;
+        
+        const loopButton = loopRunning
+            ? `<button class="btn btn-warning btn-small" onclick="stopAccountLoop('${accountId}')">Stop Loop</button>`
+            : `<button class="btn btn-success btn-small" onclick="startAccountLoop('${accountId}')">Start Level UP</button>`;
+        
+        const adminActions = IS_ADMIN ? `
+            <button class="btn btn-primary btn-small" onclick="editAccount('${accountId}')">Edit</button>
+            <button class="btn btn-danger btn-small" onclick="deleteAccount('${accountId}')">Delete</button>
+        ` : '';
+        
+        tr.innerHTML = `
+            <td>${accountId}</td>
+            <td>${account.name || accountId}</td>
+            <td>
+                <div style="display: flex; gap: 5px; align-items: center;">
+                    <input type="text" id="teamcode-${accountId}" class="form-control" style="width: 120px; padding: 6px; font-size: 12px;" value="${account.team_code || ''}" placeholder="Team Code">
+                    <button class="btn btn-primary btn-small" onclick="updateAccountTeamCode('${accountId}')">Update</button>
+                </div>
+            </td>
+            <td>
+                <span class="status-badge ${statusClass}">${statusText}</span>
+            </td>
+            <td>
+                <div style="display: flex; gap: 5px; align-items: center;">
+                    <span class="status-badge ${loopStatusClass}">${loopStatusText}</span>
+                    ${loopButton}
+                </div>
+            </td>
+            <td>
+                <div class="actions">
+                    ${actionButton}
+                    ${adminActions}
+                </div>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    }
+}
+
+// Account operations (available to both admin and users)
+function stopAccount(accountId) {
+    if (!confirm(`Stop account ${accountId}?`)) return;
+    
+    fetch(`/api/accounts/${accountId}/stop`, { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            alert(data.success ? '✅ ' + data.message : '❌ ' + data.error);
+            if (data.success) loadAccounts();
+        })
+        .catch(err => alert('❌ Error: ' + err));
+}
+
+function startAccount(accountId) {
+    fetch(`/api/accounts/${accountId}/start`, { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            alert(data.success ? '✅ ' + data.message : '❌ ' + data.error);
+            if (data.success) setTimeout(loadAccounts, 1000);
+        })
+        .catch(err => alert('❌ Error: ' + err));
+}
+
+function startAccountLoop(accountId) {
+    fetch(`/api/accounts/${accountId}/loop/start`, { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            alert(data.success ? '✅ ' + data.message : '❌ ' + data.error);
+            if (data.success) loadAccounts();
+        })
+        .catch(err => alert('❌ Error: ' + err));
+}
+
+function stopAccountLoop(accountId) {
+    if (!confirm(`Stop loop for account ${accountId}?`)) return;
+    
+    fetch(`/api/accounts/${accountId}/loop/stop`, { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            alert(data.success ? '✅ ' + data.message : '❌ ' + data.error);
+            if (data.success) loadAccounts();
+        })
+        .catch(err => alert('❌ Error: ' + err));
+}
+
+function updateAccountTeamCode(accountId) {
+    const teamCode = document.getElementById(`teamcode-${accountId}`).value.trim();
+    if (!teamCode) {
+        alert('❌ Please enter a team code');
+        return;
+    }
+    
+    fetch(`/api/accounts/${accountId}/teamcode`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ team_code: teamCode })
+    })
+        .then(response => response.json())
+        .then(data => {
+            alert(data.success ? '✅ ' + data.message : '❌ ' + data.error);
+            if (data.success) loadAccounts();
+        })
+        .catch(err => alert('❌ Error: ' + err));
+}
+
+// Admin-only functions
+{% if is_admin %}
+// Load users
+function loadUsers() {
+    fetch('/api/users')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                usersData = data.users;
+                renderUsers();
+            } else {
+                alert('❌ Error loading users: ' + data.error);
+            }
+        })
+        .catch(err => console.error('Error loading users:', err));
+}
+
+// Render users table
+function renderUsers() {
+    const tbody = document.getElementById('users-tbody');
+    const table = document.getElementById('users-table');
+    const loading = document.getElementById('users-loading');
+    
+    loading.style.display = 'none';
+    table.style.display = 'table';
+    tbody.innerHTML = '';
+    
+    for (const [username, user] of Object.entries(usersData)) {
+        const tr = document.createElement('tr');
+        const statusClass = user.is_valid ? 'status-active' : 'status-expired';
+        const statusText = user.is_valid ? 'Valid' : 'Expired';
+        const validUntil = user.valid_until ? new Date(user.valid_until).toLocaleString() : 'Unlimited';
+        
+        tr.innerHTML = `
+            <td>${username}</td>
+            <td><span class="role-badge">${user.role.toUpperCase()}</span></td>
+            <td>${user.assigned_account || 'None'}</td>
+            <td>${validUntil}</td>
+            <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+            <td>
+                <div class="actions">
+                    <button class="btn btn-primary btn-small" onclick="editUser('${username}')">Edit</button>
+                    ${username !== '{{ username }}' ? `<button class="btn btn-danger btn-small" onclick="deleteUser('${username}')">Delete</button>` : ''}
+                </div>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    }
+}
+
+// Load available accounts for dropdown
+function loadAvailableAccounts() {
+    fetch('/api/available-accounts')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const select = document.getElementById('user-account');
+                select.innerHTML = '<option value="">-- No Account --</option>';
+                data.accounts.forEach(acc => {
+                    const assignedText = acc.assigned_to ? ` (assigned to ${acc.assigned_to})` : '';
+                    select.innerHTML += `<option value="${acc.account_id}">${acc.account_id} - ${acc.name}${assignedText}</option>`;
+                });
+            }
+        });
+}
+
+// User management
+document.getElementById('add-user-btn').addEventListener('click', function() {
+    editingUsername = null;
+    document.getElementById('user-modal-title').textContent = 'Add New User';
+    document.getElementById('user-form').reset();
+    document.getElementById('user-username').disabled = false;
+    loadAvailableAccounts();
+    document.getElementById('user-modal').style.display = 'block';
+});
+
+function editUser(username) {
+    editingUsername = username;
+    const user = usersData[username];
+    document.getElementById('user-modal-title').textContent = 'Edit User';
+    document.getElementById('user-username').value = username;
+    document.getElementById('user-username').disabled = true;
+    document.getElementById('user-password').value = '';
+    document.getElementById('user-password').placeholder = 'Leave blank to keep current';
+    document.getElementById('user-role').value = user.role;
+    document.getElementById('user-account').value = user.assigned_account || '';
+    
+    // Calculate days remaining if valid_until exists
+    if (user.valid_until) {
+        const validDate = new Date(user.valid_until);
+        const now = new Date();
+        const daysRemaining = Math.ceil((validDate - now) / (1000 * 60 * 60 * 24));
+        document.getElementById('user-valid-days').value = daysRemaining > 0 ? daysRemaining : 0;
+    } else {
+        document.getElementById('user-valid-days').value = '';
+    }
+    
+    loadAvailableAccounts();
+    document.getElementById('user-modal').style.display = 'block';
+}
+
+function deleteUser(username) {
+    if (!confirm(`Delete user ${username}?`)) return;
+    
+    fetch(`/api/users/${username}`, { method: 'DELETE' })
+        .then(response => response.json())
+        .then(data => {
+            alert(data.success ? '✅ ' + data.message : '❌ ' + data.error);
+            if (data.success) loadUsers();
+        })
+        .catch(err => alert('❌ Error: ' + err));
+}
+
+document.getElementById('user-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const username = document.getElementById('user-username').value.trim();
+    const password = document.getElementById('user-password').value.trim();
+    const role = document.getElementById('user-role').value;
+    const account = document.getElementById('user-account').value;
+    const validDays = document.getElementById('user-valid-days').value;
+    
+    if (!username || (!editingUsername && !password)) {
+        alert('❌ Username and password are required');
+        return;
+    }
+    
+    const url = editingUsername ? `/api/users/${editingUsername}` : '/api/users';
+    const method = editingUsername ? 'PUT' : 'POST';
+    const body = { username, role, assigned_account: account, valid_days: validDays };
+    
+    if (password) body.password = password;
+    
+    fetch(url, {
+        method: method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+    })
+        .then(response => response.json())
+        .then(data => {
+            alert(data.success ? '✅ ' + data.message : '❌ ' + data.error);
+            if (data.success) {
+                document.getElementById('user-modal').style.display = 'none';
+                loadUsers();
+            }
+        })
+        .catch(err => alert('❌ Error: ' + err));
+});
+
+document.getElementById('close-user-modal').addEventListener('click', function() {
+    document.getElementById('user-modal').style.display = 'none';
+});
+
+// Account management
+document.getElementById('add-account-btn').addEventListener('click', function() {
+    editingAccountId = null;
+    document.getElementById('account-modal-title').textContent = 'Add New Account';
+    document.getElementById('account-form').reset();
+    document.getElementById('account-id').disabled = false;
+    document.getElementById('account-modal').style.display = 'block';
+});
+
+function editAccount(accountId) {
+    editingAccountId = accountId;
+    const account = accountsData[accountId];
+    document.getElementById('account-modal-title').textContent = 'Edit Account';
+    document.getElementById('account-id').value = accountId;
+    document.getElementById('account-id').disabled = true;
+    document.getElementById('account-name').value = account.name || accountId;
+    document.getElementById('account-password').value = '';
+    document.getElementById('account-password').placeholder = 'Leave blank to keep current';
+    document.getElementById('account-teamcode').value = account.team_code || '';
+    document.getElementById('account-modal').style.display = 'block';
+}
+
+function deleteAccount(accountId) {
+    if (!confirm(`Delete account ${accountId}?`)) return;
+    
+    fetch(`/api/accounts/${accountId}`, { method: 'DELETE' })
+        .then(response => response.json())
+        .then(data => {
+            alert(data.success ? '✅ ' + data.message : '❌ ' + data.error);
+            if (data.success) {
+                loadAccounts();
+                loadUsers();
+            }
+        })
+        .catch(err => alert('❌ Error: ' + err));
+}
+
+document.getElementById('account-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const accountId = document.getElementById('account-id').value.trim();
+    const password = document.getElementById('account-password').value.trim();
+    const name = document.getElementById('account-name').value.trim();
+    const teamCode = document.getElementById('account-teamcode').value.trim();
+    
+    if (!accountId || (!editingAccountId && !password)) {
+        alert('❌ Account ID and password are required');
+        return;
+    }
+    
+    const url = editingAccountId ? `/api/accounts/${editingAccountId}` : '/api/accounts';
+    const method = editingAccountId ? 'PUT' : 'POST';
+    const body = { account_id: accountId, name: name || accountId, team_code: teamCode };
+    
+    if (password) body.password = password;
+    
+    fetch(url, {
+        method: method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+    })
+        .then(response => response.json())
+        .then(data => {
+            alert(data.success ? '✅ ' + data.message : '❌ ' + data.error);
+            if (data.success) {
+                document.getElementById('account-modal').style.display = 'none';
+                loadAccounts();
+            }
+        })
+        .catch(err => alert('❌ Error: ' + err));
+});
+
+document.getElementById('close-account-modal').addEventListener('click', function() {
+    document.getElementById('account-modal').style.display = 'none';
+});
+
+// Load both users and accounts for admin
+loadUsers();
+loadAccounts();
+
+// Auto-refresh
+setInterval(() => {
+    loadUsers();
+    loadAccounts();
+}, 5000);
+{% else %}
+// Regular user - only load their account
+loadAccounts();
+setInterval(loadAccounts, 5000);
+{% endif %}
+
+// Close modals on outside click
+window.onclick = function(event) {
+    if (event.target.classList.contains('modal')) {
+        event.target.style.display = 'none';
+    }
+};
+</script>
+{% endblock %}

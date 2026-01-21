@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}Settings - Level UP{% endblock %}
+
+{% block content %}
+<div style="max-width: 600px; margin: 0 auto;">
+    <div class="card">
+        <h2>⚙️ Account Settings</h2>
+        <p style="color: #666; margin-bottom: 30px;">Manage your account credentials</p>
+        
+        <!-- Change Password -->
+        <div style="margin-bottom: 40px; padding-bottom: 30px; border-bottom: 2px solid #e0e0e0;">
+            <h3 style="color: #333; margin-bottom: 20px; font-size: 20px;">🔑 Change Password</h3>
+            <form method="POST" action="{{ url_for('settings') }}">
+                <input type="hidden" name="action" value="change_password">
+                
+                <div class="form-group">
+                    <label for="current_password">Current Password</label>
+                    <input type="password" id="current_password" name="current_password" class="form-control" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="new_password">New Password</label>
+                    <input type="password" id="new_password" name="new_password" class="form-control" required minlength="6">
+                </div>
+                
+                <div class="form-group">
+                    <label for="confirm_password">Confirm New Password</label>
+                    <input type="password" id="confirm_password" name="confirm_password" class="form-control" required minlength="6">
+                </div>
+                
+                <button type="submit" class="btn btn-primary">Change Password</button>
+            </form>
+        </div>
+        
+        <!-- Change Username -->
+        <div>
+            <h3 style="color: #333; margin-bottom: 20px; font-size: 20px;">👤 Change Username</h3>
+            <form method="POST" action="{{ url_for('settings') }}">
+                <input type="hidden" name="action" value="change_username">
+                
+                <div class="form-group">
+                    <label for="new_username">New Username</label>
+                    <input type="text" id="new_username" name="new_username" class="form-control" required minlength="3" value="{{ username }}">
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">Current Password (for verification)</label>
+                    <input type="password" id="password" name="password" class="form-control" required>
+                </div>
+                
+                <button type="submit" class="btn btn-primary">Change Username</button>
+            </form>
+        </div>
+    </div>
+    
+    <div class="card" style="margin-top: 20px; background: #fff3cd; border: 1px solid #ffc107;">
+        <h3 style="color: #856404; margin-bottom: 10px;">⚠️ Important Notes</h3>
+        <ul style="color: #856404; line-height: 1.8;">
+            <li>When you change your password, all active sessions will be logged out for security.</li>
+            <li>When you change your username, you'll need to login again with the new username.</li>
+            <li>Password must be at least 6 characters long.</li>
+            <li>Username must be at least 3 characters long.</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}
+
