@@ -108,7 +108,7 @@ def get_packet2(key,iv):
     hlen = len(aes_encrypt(packet,key,iv))//2
     return bytes.fromhex("1215000000"+dec_to_hex(hlen)+aes_encrypt(packet,key,iv))
 def OpenSquad(key, iv):
-    fields = {1:1, 2:{2:"\u0001",3:1,4:1,5:"en",9:1,11:1,13:1,14:{2:5756,6:11,8:"1.118.2",9:3,10:2}}}
+    fields = {1:1, 2:{2:"\u0001",3:1,4:1,5:"en",9:1,11:1,13:1,14:{2:5756,6:11,8:"1.120.2",9:3,10:2}}}
     packet = create_packet(fields).hex()
     encrypted_packet = aes_encrypt(packet, key, iv)
     hlen = len(encrypted_packet) // 2
@@ -525,7 +525,7 @@ def xSendTeamMsg(msg, idT,  K, V):
     return GeneRaTePk(str(CrEaTe_ProTo(fields).hex()) , '1215' , K , V)
 
 def OpEnSq(K , V):
-    fields = {1: 1, 2: {2: "\u0001", 3: 1, 4: 1, 5: "en", 9: 1, 11: 1, 13: 1, 14: {2: 5756, 6: 11, 8: "1.118.2", 9: 2, 10: 4}}}
+    fields = {1: 1, 2: {2: "\u0001", 3: 1, 4: 1, 5: "en", 9: 1, 11: 1, 13: 1, 14: {2: 5756, 6: 11, 8: "1.120.2", 9: 2, 10: 4}}}
     return GeneRaTePk(str(CrEaTe_ProTo(fields).hex()) , '0515' , K , V)
 
 def cHSq(Nu , Uid , K , V):
@@ -564,11 +564,11 @@ def Join_Room(room_id , K , V):
     return GeneRaTePk(str(CrEaTe_ProTo(fields).hex()) , '0e10' , K , V)
 
 def SPamSq(Uid , K , V): 
-    fields = {1: 33, 2: {1: int(Uid) , 2: 'ME', 3: 1, 4: 1, 7: 330, 8: 19459, 9: 100, 12: 1, 16: 1, 17: {2: 94, 6: 11, 8: '1.118.2', 9: 3, 10: 2}, 18: 201, 23: {2: 1, 3: 1}, 24: xBunnEr() , 26: {}, 28: {}}}
+    fields = {1: 33, 2: {1: int(Uid) , 2: 'ME', 3: 1, 4: 1, 7: 330, 8: 19459, 9: 100, 12: 1, 16: 1, 17: {2: 94, 6: 11, 8: '1.120.2', 9: 3, 10: 2}, 18: 201, 23: {2: 1, 3: 1}, 24: xBunnEr() , 26: {}, 28: {}}}
     return GeneRaTePk(str(CrEaTe_ProTo(fields).hex()) , '0515' , K , V)
 
 def AccEpT(PLayer_Uid , AuTh_CodE_Sq , K , V): 
-    fields = {1: 4, 2: {1: int(PLayer_Uid), 3: int(PLayer_Uid), 4: "\u0001\u0007\t\n\u0012\u0019\u001a ", 8: 1, 9: {2: 1393, 4: "wW_T", 6: 11, 8: "1.118.2", 9: 3, 10: 2}, 10: AuTh_CodE_Sq, 12: 1, 13: "en", 16: "OR"}}
+    fields = {1: 4, 2: {1: int(PLayer_Uid), 3: int(PLayer_Uid), 4: "\u0001\u0007\t\n\u0012\u0019\u001a ", 8: 1, 9: {2: 1393, 4: "wW_T", 6: 11, 8: "1.120.2", 9: 3, 10: 2}, 10: AuTh_CodE_Sq, 12: 1, 13: "en", 16: "OR"}}
     return GeneRaTePk(str(CrEaTe_ProTo(fields).hex()) , '0515' , K , V)
 
 def GenJoinSquadsPacket(code, key, iv):
@@ -582,7 +582,7 @@ def GenJoinSquadsPacket(code, key, iv):
     fields[2][9] = {}
     fields[2][9][2] = 800
     fields[2][9][6] = 11
-    fields[2][9][8] = "1.118.2"
+    fields[2][9][8] = "1.120.2"
     fields[2][9][9] = 5
     fields[2][9][10] = 1
     print(fields)
@@ -849,7 +849,7 @@ def xSendTeamMsg(msg, idT,  K, V):
     return GeneRaTePk(str(CrEaTe_ProTo(fields).hex()) , '1215' , K , V)
 
 def OpEnSq(K , V):
-    fields = {1: 1, 2: {2: "\u0001", 3: 1, 4: 1, 5: "en", 9: 1, 11: 1, 13: 1, 14: {2: 5756, 6: 11, 8: "1.118.2", 9: 2, 10: 4}}}
+    fields = {1: 1, 2: {2: "\u0001", 3: 1, 4: 1, 5: "en", 9: 1, 11: 1, 13: 1, 14: {2: 5756, 6: 11, 8: "1.120.2", 9: 2, 10: 4}}}
     return GeneRaTePk(str(CrEaTe_ProTo(fields).hex()) , '0515' , K , V)
 
 def cHSq(Nu , Uid , K , V):
@@ -905,11 +905,11 @@ def Join_Room(room_id , K , V):
     return GeneRaTePk(str(CrEaTe_ProTo(fields).hex()) , '0e10' , K , V)
 
 def SPamSq(Uid , K , V): 
-    fields = {1: 33, 2: {1: int(Uid) , 2: 'ME', 3: 1, 4: 1, 7: 330, 8: 19459, 9: 100, 12: 1, 16: 1, 17: {2: 94, 6: 11, 8: '1.118.2', 9: 3, 10: 2}, 18: 201, 23: {2: 1, 3: 1}, 24: xBunnEr() , 26: {}, 28: {}}}
+    fields = {1: 33, 2: {1: int(Uid) , 2: 'ME', 3: 1, 4: 1, 7: 330, 8: 19459, 9: 100, 12: 1, 16: 1, 17: {2: 94, 6: 11, 8: '1.120.2', 9: 3, 10: 2}, 18: 201, 23: {2: 1, 3: 1}, 24: xBunnEr() , 26: {}, 28: {}}}
     return GeneRaTePk(str(CrEaTe_ProTo(fields).hex()) , '0515' , K , V)
 
 def AccEpT(PLayer_Uid , AuTh_CodE_Sq , K , V): 
-    fields = {1: 4, 2: {1: int(PLayer_Uid), 3: int(PLayer_Uid), 4: "\u0001\u0007\t\n\u0012\u0019\u001a ", 8: 1, 9: {2: 1393, 4: "wW_T", 6: 11, 8: "1.118.2", 9: 3, 10: 2}, 10: AuTh_CodE_Sq, 12: 1, 13: "en", 16: "OR"}}
+    fields = {1: 4, 2: {1: int(PLayer_Uid), 3: int(PLayer_Uid), 4: "\u0001\u0007\t\n\u0012\u0019\u001a ", 8: 1, 9: {2: 1393, 4: "wW_T", 6: 11, 8: "1.120.2", 9: 3, 10: 2}, 10: AuTh_CodE_Sq, 12: 1, 13: "en", 16: "OR"}}
     return GeneRaTePk(str(CrEaTe_ProTo(fields).hex()) , '0515' , K , V)
 
 
@@ -990,7 +990,7 @@ def GenJoinSquadsPacket(code, key, iv):
     fields[2][9] = {}
     fields[2][9][2] = 800
     fields[2][9][6] = 11
-    fields[2][9][8] = "1.118.2"
+    fields[2][9][8] = "1.120.2"
     fields[2][9][9] = 5
     fields[2][9][10] = 1
     print(fields)
